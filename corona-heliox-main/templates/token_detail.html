@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ token.symbol }} / {% if token.chain == 'bsc' %}BNB{% else %}SOL{% endif %} — HELIOX Screener{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full bg-black text-zinc-100 font-mono-num text-xs">
+
+    <!-- Top Pair Header -->
+    <div class="h-14 border-b border-zinc-800 bg-zinc-950 px-4 flex items-center justify-between">
+        
+        <!-- Left: Back + Token Info -->
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'dashboard' %}" class="text-zinc-400 hover:text-white mr-1 text-sm" title="Back to Screener">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+
+            <img src="{{ token.logo }}" alt="{{ token.symbol }}" 
+                 class="w-8 h-8 rounded border border-zinc-800 object-cover bg-zinc-900"
+                 onerror="this.src='https://assets.coingecko.com/coins/images/4128/large/solana.png'">
+            
+            <div class="flex items-center space-x-2 font-sans">
+                <span class="font-black text-white text-base">{{ token.symbol }}</span>
+                <span class="text-zinc-400 text-xs font-mono-num">/{% if token.chain == 'bsc' %}BNB{% else %}SOL{% endif %}</span>
+                <span class="text-xs text-zinc-400 font-normal">({{ token.name }})</span>
+                
+                <span class="text-[10px] font-mono-num font-bold px-1.5 py-0.5 rounded bg-zinc-900 text-cyan-400 border border-zinc-800 uppercase">
+                    {{ token.launchpad }}
+                </span>
+
+                <span class="text-[10px] font-mono-num font-bold px-1.5 py-0.5 rounded border
+                    {% if risk_level == 'LOW RISK' %}bg-emerald-950/40 text-emerald-400 border-emerald-800/60
+                    {% elif risk_level == 'MODERATE RISK' %}bg-amber-950/40 text-amber-400 border-amber-800/60
+                    {% else %}bg-rose-950/40 text-rose-400 border-rose-800/60{% endif %}">
+                    {{ risk_level }}
+                </span>
+
+                {% if token.is_passed %}
+                    <span class="text-[10px] font-mono-num font-bold px-2 py-0.5 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-800/80 flex items-center space-x-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span>PASSED FILTER</span>
+                    </span>
+                {% else %}
+                    <span class="text-[10px] font-mono-num font-bold px-2 py-0.5 rounded-full bg-rose-950/60 text-rose-400 border border-rose-800/80 flex items-center space-x-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                        <span>NOT PASSED</span>
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right: Actions Deck (Real on-chain links only) -->
+        <div class="flex items-center space-x-2 font-sans">
+            <button onclick="toggleWatchlist('{{ token.token_CA }}', this)" 
+                    class="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 px-2.5 py-1.5 rounded text-xs transition {% if is_in_watchlist %}text-amber-400{% else %}text-zinc-400{% endif %}" title="Star token">
+                <i class="fa-solid fa-star"></i>
+            </button>
+
+            <a href="{{ token.padre_url }}" target="_blank" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-3.5 py-1.5 rounded flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-arrow-trend-up text-[11px]"></i>
+                <span>Trade (Padre)</span>
+            </a>
+
+            <a href="{{ token.rugcheck_url }}" target="_blank" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-medium text-xs px-2.5 py-1.5 rounded transition">
+                RugCheck
+            </a>
+
+            <a href="https://dexscreener.com/{% if token.chain == 'bsc' %}bsc{% else %}solana{% endif %}/{{ token.token_CA }}" target="_blank" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-medium text-xs px-2.5 py-1.5 rounded transition">
+                DexScreener
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Bar (Price, MCAP, Liquidity, 24H Vol) -->
+    <div class="bg-zinc-950 border-b border-zinc-800 px-4 py-3 grid grid-cols-2 sm:grid-cols-6 gap-4 text-xs font-mono-num">
+        <div>
+            <span class="text-zinc-500 text-[10px] block uppercase font-semibold">PRICE USD</span>
+            <span class="text-white font-bold text-sm">{{ token.price_formatted }}</span>
+        </div>
+        <div>
+            <span class="text-zinc-500 text-[10px] block uppercase font-semibold">MARKET CAP</span>
+            <span class="text-cyan-400 font-bold text-sm">{{ token.mcap_formatted }}</span>
+        </div>
+        <div>
+            <span class="text-zinc-500 text-[10px] block uppercase font-semibold">LIQUIDITY</span>
+            <span class="text-white font-bold text-sm">{{ token.liq_formatted }}</span>
+        </div>
+        <div>
+            <span class="text-zinc-500 text-[10px] block uppercase font-semibold">24H VOLUME</span>
+            <span class="text-white font-bold text-sm">{{ token.vol_formatted }}</span>
+        </div>
+        <div>
+            <span class="text-zinc-500 text-[10px] block uppercase font-semibold">AI SCALPER SCORE</span>
+            <span class="font-bold text-sm {% if token.score >= 7.5 %}text-emerald-400{% elif token.score >= 6 %}text-amber-400{% else %}text-rose-400{% endif %}">
+                {{ token.score|floatformat:1 }} / 10
+            </span>
+        </div>
+        <div>
+            <span class="text-zinc-500 text-[10px] block uppercase font-semibold">HOLDERS</span>
+            <span class="text-white font-bold text-sm">{{ token.traders_formatted }}</span>
+        </div>
+    </div>
+
+    <!-- Main Content Split Grid -->
+    <div class="flex-1 p-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+        
+        <!-- Left: AI Scalper Intelligence Dossier (2 Columns) -->
+        <div class="lg:col-span-2 space-y-4">
+            
+            <!-- AI Scalper Memo Card -->
+            <div class="bg-zinc-950 border border-zinc-800 rounded p-4 space-y-3">
+                <div class="flex items-center justify-between border-b border-zinc-800 pb-2.5">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-microchip text-blue-400"></i>
+                        <span class="font-bold text-white text-xs uppercase tracking-wider font-sans">AI Scalper Memo</span>
+                    </div>
+                    <span class="text-[10px] text-zinc-500">Gemini 2.0 Telemetry</span>
+                </div>
+                
+                <div class="text-zinc-300 text-xs leading-relaxed bg-black p-3.5 rounded border border-zinc-800">
+                    {{ token.thesis }}
+                </div>
+            </div>
+
+            <!-- On-Chain Telemetry & Metrics -->
+            <div class="bg-zinc-950 border border-zinc-800 rounded p-4 space-y-3">
+                <div class="flex items-center space-x-2 border-b border-zinc-800 pb-2.5">
+                    <i class="fa-solid fa-chart-line text-cyan-400"></i>
+                    <span class="font-bold text-white text-xs uppercase tracking-wider font-sans">Price Change Dynamics</span>
+                </div>
+
+                <div class="grid grid-cols-4 gap-3 text-center">
+                    <div class="bg-black p-2.5 rounded border border-zinc-800">
+                        <span class="text-zinc-500 text-[10px] block font-semibold">5M</span>
+                        <span class="font-bold text-sm {% if token.change_5m >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                            {% if token.change_5m >= 0 %}+{{ token.change_5m }}%{% else %}{{ token.change_5m }}%{% endif %}
+                        </span>
+                    </div>
+                    <div class="bg-black p-2.5 rounded border border-zinc-800">
+                        <span class="text-zinc-500 text-[10px] block font-semibold">1H</span>
+                        <span class="font-bold text-sm {% if token.change_1h >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                            {% if token.change_1h >= 0 %}+{{ token.change_1h }}%{% else %}{{ token.change_1h }}%{% endif %}
+                        </span>
+                    </div>
+                    <div class="bg-black p-2.5 rounded border border-zinc-800">
+                        <span class="text-zinc-500 text-[10px] block font-semibold">6H</span>
+                        <span class="font-bold text-sm {% if token.change_6h >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                            {% if token.change_6h >= 0 %}+{{ token.change_6h }}%{% else %}{{ token.change_6h }}%{% endif %}
+                        </span>
+                    </div>
+                    <div class="bg-black p-2.5 rounded border border-zinc-800">
+                        <span class="text-zinc-500 text-[10px] block font-semibold">24H</span>
+                        <span class="font-bold text-sm {% if token.change_24h >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                            {% if token.change_24h >= 0 %}+{{ token.change_24h }}%{% else %}{{ token.change_24h }}%{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contract & Community Links -->
+            <div class="bg-zinc-950 border border-zinc-800 rounded p-4 space-y-3">
+                <div class="flex items-center space-x-2 border-b border-zinc-800 pb-2.5">
+                    <i class="fa-solid fa-link text-zinc-400"></i>
+                    <span class="font-bold text-white text-xs uppercase tracking-wider font-sans">Contract & Socials</span>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between bg-black p-2 rounded border border-zinc-800">
+                        <span class="text-zinc-400 text-[11px]">Contract Address:</span>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-zinc-200 text-xs font-mono">{{ token.token_CA }}</span>
+                            <button onclick="copyToClipboard('{{ token.token_CA }}')" class="text-zinc-400 hover:text-white" title="Copy CA">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-3 pt-1">
+                        {% if token.website_link %}
+                            <a href="{{ token.website_link }}" target="_blank" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-3 py-1.5 rounded text-zinc-200 hover:text-white flex items-center space-x-1.5 transition">
+                                <i class="fa-solid fa-globe text-xs"></i>
+                                <span>Website</span>
+                            </a>
+                        {% endif %}
+
+                        {% if token.twitter_link %}
+                            <a href="{{ token.twitter_link }}" target="_blank" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-3 py-1.5 rounded text-zinc-200 hover:text-white flex items-center space-x-1.5 transition">
+                                <i class="fa-brands fa-x-twitter text-xs"></i>
+                                <span>Twitter</span>
+                            </a>
+                        {% endif %}
+
+                        {% if token.telegram_link %}
+                            <a href="{{ token.telegram_link }}" target="_blank" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-3 py-1.5 rounded text-zinc-200 hover:text-white flex items-center space-x-1.5 transition">
+                                <i class="fa-brands fa-telegram text-xs"></i>
+                                <span>Telegram</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Holder Concentration & Audit (1 Column) -->
+        <div class="space-y-4">
+            
+            <!-- Risk Assessment Box -->
+            <div class="bg-zinc-950 border border-zinc-800 rounded p-4 space-y-4">
+                <div class="flex items-center space-x-2 border-b border-zinc-800 pb-2.5">
+                    <i class="fa-solid fa-shield-halved text-emerald-400"></i>
+                    <span class="font-bold text-white text-xs uppercase tracking-wider font-sans">Safety & Risk Audit</span>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-1">
+                            <span class="text-zinc-400">Top 10 Holders</span>
+                            <span class="font-bold text-white">{{ token.top_10_percent }}%</span>
+                        </div>
+                        <div class="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-blue-500 h-1.5 rounded-full" style="width: {{ token.top_10_percent|default:0 }}%"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-1">
+                            <span class="text-zinc-400">Creator Hold</span>
+                            <span class="font-bold text-white">{{ token.creator_hold_percent }}%</span>
+                        </div>
+                        <div class="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-amber-500 h-1.5 rounded-full" style="width: {{ token.creator_hold_percent|default:0 }}%"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-1">
+                            <span class="text-zinc-400">Bundler Rate</span>
+                            <span class="font-bold text-white">{{ token.bundler_percent }}%</span>
+                        </div>
+                        <div class="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-purple-500 h-1.5 rounded-full" style="width: {{ token.bundler_percent|default:0 }}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-zinc-800 flex justify-between text-[11px]">
+                        <span class="text-zinc-400">Snipers Detected:</span>
+                        <span class="font-bold text-white">{{ token.sniper_count }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Action Box -->
+            <div class="bg-zinc-950 border border-zinc-800 rounded p-4 space-y-3">
+                <span class="text-zinc-400 font-bold uppercase text-[10px] block">Trading Terminal</span>
+                <a href="{{ token.padre_url }}" target="_blank" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-4 rounded text-center block text-xs transition">
+                    Open Padre Execution
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

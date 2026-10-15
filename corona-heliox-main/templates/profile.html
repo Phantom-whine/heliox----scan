@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Settings & API — HELIOX{% endblock %}
+
+{% block content %}
+<div class="p-6 max-w-4xl mx-auto space-y-6 font-mono-num text-xs">
+
+    <!-- Header -->
+    <div class="border-b border-zinc-800 pb-4">
+        <h1 class="text-base font-bold text-white font-sans flex items-center space-x-2">
+            <i class="fa-solid fa-gear text-zinc-400"></i>
+            <span>Account Settings & API Credentials</span>
+        </h1>
+    </div>
+
+    <!-- Membership -->
+    <div class="bg-zinc-950 border border-zinc-800 rounded p-4 flex items-center justify-between">
+        <div>
+            <span class="text-[10px] text-zinc-500 uppercase font-semibold block font-sans">Account Tier</span>
+            <span class="text-sm font-bold text-white font-sans">{{ profile.plan_name }}</span>
+        </div>
+        <span class="text-[10px] text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 px-2 py-0.5 rounded font-bold uppercase font-sans">
+            Free Community Alpha
+        </span>
+    </div>
+
+    <!-- Profile Details Form -->
+    <div class="bg-zinc-950 border border-zinc-800 rounded p-5 space-y-4">
+        <div class="border-b border-zinc-800 pb-2 text-white font-bold text-xs uppercase tracking-wider font-sans">
+            User Credentials
+        </div>
+
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_profile">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-zinc-300 font-semibold mb-1 font-sans">Username</label>
+                    <input type="text" value="{{ user.username }}" disabled 
+                           class="w-full bg-black border border-zinc-800 rounded px-3 py-1.5 text-zinc-500 cursor-not-allowed">
+                </div>
+
+                <div>
+                    <label class="block text-zinc-300 font-semibold mb-1 font-sans">Email</label>
+                    <input type="email" name="email" value="{{ user.email }}" placeholder="you@domain.com" 
+                           class="w-full bg-zinc-900 border border-zinc-800 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-zinc-300 font-semibold mb-1 font-sans">Custom Gemini API Key (Optional)</label>
+                <input type="password" name="gemini_api_key" value="{{ profile.gemini_api_key|default:'' }}" placeholder="AIzaSy..." 
+                       class="w-full bg-zinc-900 border border-zinc-800 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500">
+                <p class="text-[10px] text-zinc-500 mt-1 font-sans">Optional override to use your personal Google Gemini API quota.</p>
+            </div>
+
+            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded transition text-xs font-sans">
+                Save Changes
+            </button>
+        </form>
+    </div>
+
+    <!-- Developer API Key -->
+    <div class="bg-zinc-950 border border-zinc-800 rounded p-5 space-y-3">
+        <div class="border-b border-zinc-800 pb-2 text-white font-bold text-xs uppercase tracking-wider font-sans">
+            Developer API Key
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <input type="text" value="{{ profile.api_key }}" readonly 
+                   class="flex-1 bg-black border border-zinc-800 rounded px-3 py-1.5 text-cyan-400 font-mono text-xs">
+            <button onclick="copyToClipboard('{{ profile.api_key }}', 'API Key')" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 px-3 py-1.5 rounded text-xs transition">
+                Copy
+            </button>
+        </div>
+
+        <form method="POST" class="pt-1">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="regenerate_api_key">
+            <button type="submit" class="text-zinc-500 hover:text-zinc-300 text-[11px] underline font-sans">
+                Regenerate API Key
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

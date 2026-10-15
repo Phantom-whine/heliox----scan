@@ -1,0 +1,16 @@
+# nixpacks.toml at the root of your project
+
+[phases.setup]
+# Install extra system packages
+aptPkgs = ["chromium",  "chromium-driver"]
+
+[phases.build]
+# Run Playwright install to fetch browser binaries
+cmds = [
+  "playwright install chromium",
+  "playwright install-deps"
+]
+
+[start]
+# Your app’s entrypoint
+cmd = "python main.py"

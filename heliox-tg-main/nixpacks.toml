@@ -1,0 +1,5 @@
+# nixpacks.toml at the root of your project
+
+[start]
+# Your app’s entrypoint
+cmd = "python main.py"

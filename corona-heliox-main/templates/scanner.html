@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}AI Contract Scanner — HELIOX{% endblock %}
+
+{% block content %}
+<div class="p-6 max-w-4xl mx-auto space-y-6 font-mono-num text-xs">
+    
+    <!-- Header -->
+    <div class="border-b border-zinc-800 pb-4">
+        <h1 class="text-base font-bold text-white font-sans flex items-center space-x-2">
+            <i class="fa-solid fa-crosshairs text-blue-500"></i>
+            <span>Real-Time On-Chain Contract Scanner</span>
+        </h1>
+        <p class="text-[11px] text-zinc-400 mt-1 font-sans">
+            Fetch real live on-chain liquidity, volume, holder clustering, and AI scalper evaluation for any Solana or BSC address.
+        </p>
+    </div>
+
+    <!-- Scanner Form Terminal -->
+    <div class="bg-zinc-950 border border-zinc-800 rounded p-5 space-y-3">
+        <form method="POST" action="{% url 'manual_scan' %}" class="space-y-3">
+            {% csrf_token %}
+            <div>
+                <label class="block text-[11px] text-zinc-300 font-semibold mb-1.5 uppercase tracking-wider">
+                    Contract Address (Solana or BSC)
+                </label>
+                <div class="flex items-center space-x-2">
+                    <input type="text" name="ca" value="{{ target_ca }}" required placeholder="Enter Solana CA (e.g. HSzG6m...) or BSC CA (0x...)" 
+                           class="flex-1 bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition font-mono">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2 rounded text-xs transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-bolt text-[11px]"></i>
+                        <span>Scan On-Chain</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Scan Results -->
+    {% if scan_result %}
+        <div class="bg-zinc-950 border border-zinc-800 rounded p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <div class="flex items-center space-x-3">
+                    <img src="{{ scan_result.token.logo }}" alt="{{ scan_result.token.symbol }}" class="w-8 h-8 rounded border border-zinc-800 object-cover bg-zinc-900" onerror="this.src='https://assets.coingecko.com/coins/images/4128/large/solana.png'">
+                    <div>
+                        <h2 class="text-sm font-bold text-white font-sans">{{ scan_result.token.name }} (${{ scan_result.token.symbol }})</h2>
+                        <span class="text-[11px] text-zinc-400 font-mono">CA: {{ scan_result.token.token_CA }}</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    {% if scan_result.token.is_passed %}
+                        <span class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/80 text-xs font-bold font-sans">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>PASSED FILTER</span>
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded bg-rose-950/60 text-rose-400 border border-rose-800/80 text-xs font-bold font-sans">
+                            <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+                            <span>NOT PASSED</span>
+                        </span>
+                    {% endif %}
+
+                    <div class="bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded flex items-center space-x-2">
+                        <span class="text-[11px] text-zinc-400 font-sans">AI Score:</span>
+                        <span class="text-sm font-black {% if scan_result.token.score >= 7.5 %}text-emerald-400{% elif scan_result.token.score >= 6 %}text-amber-400{% else %}text-rose-400{% endif %}">
+                            {{ scan_result.token.score|floatformat:1 }}/10
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="grid grid-cols-3 gap-3 text-center">
+                <div class="bg-black p-2.5 rounded border border-zinc-800">
+                    <span class="text-zinc-500 text-[10px] block font-semibold">MARKET CAP</span>
+                    <span class="text-cyan-400 font-bold text-xs">{{ scan_result.token.mcap_formatted }}</span>
+                </div>
+                <div class="bg-black p-2.5 rounded border border-zinc-800">
+                    <span class="text-zinc-500 text-[10px] block font-semibold">LIQUIDITY</span>
+                    <span class="text-white font-bold text-xs">{{ scan_result.token.liq_formatted }}</span>
+                </div>
+                <div class="bg-black p-2.5 rounded border border-zinc-800">
+                    <span class="text-zinc-500 text-[10px] block font-semibold">PRICE</span>
+                    <span class="text-white font-bold text-xs">{{ scan_result.token.price_formatted }}</span>
+                </div>
+            </div>
+
+            <!-- AI Thesis Memo -->
+            <div class="space-y-1.5">
+                <span class="text-[11px] text-zinc-300 font-semibold uppercase tracking-wider block font-sans">AI Scalper Evaluation:</span>
+                <div class="bg-black p-3.5 rounded border border-zinc-800 text-zinc-200 text-xs leading-relaxed">
+                    {{ scan_result.analysis.trading_thesis }}
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-zinc-800">
+                <div class="flex items-center space-x-2">
+                    <a href="{{ scan_result.token.padre_url }}" target="_blank" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-3 py-1.5 rounded transition">
+                        Trade on Padre
+                    </a>
+                    <a href="{% url 'token_detail' scan_result.token.token_CA %}" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 text-xs px-3 py-1.5 rounded transition">
+                        View Dossier
+                    </a>
+                </div>
+                <button onclick="toggleWatchlist('{{ scan_result.token.token_CA }}', this)" class="text-xs text-zinc-400 hover:text-amber-400 transition flex items-center space-x-1">
+                    <i class="fa-solid fa-star"></i>
+                    <span>Add to Watchlist</span>
+                </button>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

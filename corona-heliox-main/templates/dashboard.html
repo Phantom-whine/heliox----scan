@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}HELIOX — DEX Terminal & Alpha Screener{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full bg-black text-zinc-100 font-mono-num text-xs select-none">
+
+    {% if not is_auth %}
+    <!-- GUEST NOTICE BANNER -->
+    <div class="bg-zinc-950 border-b border-zinc-800 px-4 py-2 flex items-center justify-between text-xs font-sans">
+        <div class="flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+            <span class="text-zinc-300">Viewing Live Screener as Guest. Sign in to star tokens, receive Telegram alerts, and access developer API keys.</span>
+        </div>
+        <div class="flex items-center space-x-2">
+            <a href="{% url 'login' %}?next={% url 'dashboard' %}" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 rounded text-[11px] transition">Sign In</a>
+            <a href="{% url 'signup' %}" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 py-1 px-3 rounded text-[11px] transition">Create Account</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- CONTROLS & FILTER BAR -->
+    <div class="h-12 border-b border-zinc-800 bg-zinc-950 px-3 flex items-center justify-between overflow-x-auto whitespace-nowrap">
+        
+        <!-- Left Filter Group -->
+        <div class="flex items-center space-x-2">
+            
+            <!-- Timeframe Dropdown Button -->
+            <div class="relative">
+                <span class="bg-zinc-900 border border-zinc-800 px-2.5 py-1.5 rounded text-xs font-semibold text-zinc-300 flex items-center space-x-1.5">
+                    <span>24H Window</span>
+                </span>
+            </div>
+
+            <!-- Trending Active Pill Group -->
+            <div class="flex items-center bg-blue-600 rounded text-white overflow-hidden font-medium text-xs">
+                <a href="?sort=score_desc{% if current_chain %}&chain={{ current_chain }}{% endif %}" class="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-600 font-bold">
+                    <i class="fa-solid fa-fire text-xs"></i>
+                    <span>Trending</span>
+                </a>
+            </div>
+
+            <!-- Filter Shortcuts -->
+            <a href="?sort=score_desc{% if current_chain %}&chain={{ current_chain }}{% endif %}" 
+               class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-2.5 py-1.5 rounded text-xs font-medium {% if current_sort == 'score_desc' %}text-blue-400 border-zinc-700{% else %}text-zinc-300{% endif %} flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-chart-simple text-xs text-zinc-400"></i>
+                <span>Top Score</span>
+            </a>
+
+            <a href="?sort=gainers{% if current_chain %}&chain={{ current_chain }}{% endif %}" 
+               class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-2.5 py-1.5 rounded text-xs font-medium {% if current_sort == 'gainers' %}text-emerald-400 border-zinc-700{% else %}text-zinc-300{% endif %} flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-arrow-trend-up text-xs text-emerald-400"></i>
+                <span>Gainers</span>
+            </a>
+
+            <a href="?sort=newest{% if current_chain %}&chain={{ current_chain }}{% endif %}" 
+               class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-2.5 py-1.5 rounded text-xs font-medium {% if current_sort == 'newest' %}text-blue-400 border-zinc-700{% else %}text-zinc-300{% endif %} flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-bolt text-xs text-amber-400"></i>
+                <span>New Pairs</span>
+            </a>
+
+            <a href="?sort=vol_desc{% if current_chain %}&chain={{ current_chain }}{% endif %}" 
+               class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-2.5 py-1.5 rounded text-xs font-medium {% if current_sort == 'vol_desc' %}text-blue-400 border-zinc-700{% else %}text-zinc-300{% endif %} flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-water text-xs text-blue-400"></i>
+                <span>Volume</span>
+            </a>
+
+            <!-- Quick Pass / Not Passed Filter Badges -->
+            <div class="flex items-center space-x-1 border-l border-zinc-800 pl-2">
+                <a href="?status=passed{% if current_chain %}&chain={{ current_chain }}{% endif %}" 
+                   class="px-2.5 py-1.5 rounded text-xs font-semibold flex items-center space-x-1.5 border {% if current_status == 'passed' %}bg-emerald-950/80 text-emerald-300 border-emerald-600{% else %}bg-zinc-900 hover:bg-zinc-800 text-emerald-400 border-zinc-800{% endif %} transition">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span>Passed ({{ passed_count|default:"0" }})</span>
+                </a>
+                <a href="?status=not_passed{% if current_chain %}&chain={{ current_chain }}{% endif %}" 
+                   class="px-2.5 py-1.5 rounded text-xs font-semibold flex items-center space-x-1.5 border {% if current_status == 'not_passed' %}bg-rose-950/80 text-rose-300 border-rose-600{% else %}bg-zinc-900 hover:bg-zinc-800 text-rose-400 border-zinc-800{% endif %} transition">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                    <span>Not Passed ({{ not_passed_count|default:"0" }})</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Right Filter Group -->
+        <div class="flex items-center space-x-3 text-xs">
+            
+            <!-- Chain Selector -->
+            <div class="flex items-center space-x-1 bg-zinc-900 border border-zinc-800 p-0.5 rounded text-[11px]">
+                <a href="?chain=all{% if current_sort %}&sort={{ current_sort }}{% endif %}" 
+                   class="px-2 py-1 rounded {% if current_chain == 'all' or not current_chain %}bg-blue-600 text-white font-bold{% else %}text-zinc-400 hover:text-white{% endif %}">
+                    All Chains
+                </a>
+                <a href="?chain=solana{% if current_sort %}&sort={{ current_sort }}{% endif %}" 
+                   class="px-2 py-1 rounded {% if current_chain == 'solana' %}bg-blue-600 text-white font-bold{% else %}text-zinc-400 hover:text-white{% endif %}">
+                    SOL
+                </a>
+                <a href="?chain=bsc{% if current_sort %}&sort={{ current_sort }}{% endif %}" 
+                   class="px-2 py-1 rounded {% if current_chain == 'bsc' %}bg-blue-600 text-white font-bold{% else %}text-zinc-400 hover:text-white{% endif %}">
+                    BSC
+                </a>
+            </div>
+
+            <!-- Total counter -->
+            <span class="text-zinc-500 text-[11px]">
+                Showing <strong class="text-white">{{ tokens|length }}</strong> pairs
+            </span>
+        </div>
+    </div>
+
+    <!-- HIGH DENSITY DATA TABLE -->
+    <div class="flex-1 overflow-x-auto">
+        <table class="w-full text-left border-collapse whitespace-nowrap">
+            <thead>
+                <tr class="h-8 border-b border-zinc-800 bg-zinc-950 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase select-none">
+                    <th class="pl-3 pr-2 w-12 text-center">#</th>
+                    <th class="px-3 min-w-[240px]">TOKEN</th>
+                    <th class="px-3 text-right">MCAP</th>
+                    <th class="px-3 text-right">PRICE</th>
+                    <th class="px-3 text-center">AGE</th>
+                    <th class="px-3 text-right">TXNS</th>
+                    <th class="px-3 text-right">VOLUME</th>
+                    <th class="px-3 text-right">HOLDERS</th>
+                    <th class="px-3 text-right">5M</th>
+                    <th class="px-3 text-right">1H</th>
+                    <th class="px-3 text-right">6H</th>
+                    <th class="px-3 text-right">24H</th>
+                    <th class="px-3 text-center">AI SCORE</th>
+                    <th class="px-3 text-center">STATUS</th>
+                    <th class="px-3 pr-4 text-right">LIQUIDITY</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-900 text-xs">
+                {% for coin in tokens %}
+                    <tr class="h-12 hover:bg-zinc-900 transition group cursor-pointer" onclick="window.location='{% url 'token_detail' coin.token_CA %}';">
+                        
+                        <!-- Rank # + Chain + Star -->
+                        <td class="pl-3 pr-2 text-center" onclick="event.stopPropagation();">
+                            <div class="flex items-center justify-center space-x-1 text-[11px] text-zinc-400">
+                                <button onclick="toggleWatchlist('{{ coin.token_CA }}', this)" 
+                                        class="{% if coin.token_CA in user_watchlist_cas %}text-amber-400{% else %}text-zinc-600 group-hover:text-zinc-400 hover:text-amber-400{% endif %} transition mr-1">
+                                    <i class="fa-solid fa-star text-[10px]"></i>
+                                </button>
+                                <span class="font-bold text-zinc-400">#{{ forloop.counter }}</span>
+                                {% if coin.chain == 'solana' %}
+                                    <span class="w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[8px] font-bold">S</span>
+                                {% else %}
+                                    <span class="w-3.5 h-3.5 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-[8px] font-bold">B</span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- Token info (Logo, Symbol / Pair, Name) -->
+                        <td class="px-3">
+                            <div class="flex items-center space-x-2.5">
+                                <img src="{{ coin.logo }}" alt="{{ coin.symbol }}" 
+                                     class="w-7 h-7 rounded border border-zinc-800 object-cover bg-zinc-900"
+                                     onerror="this.src='https://assets.coingecko.com/coins/images/4128/large/solana.png'">
+                                
+                                <div class="flex items-center space-x-1.5 overflow-hidden font-sans">
+                                    <span class="font-extrabold text-white text-[13px] group-hover:text-blue-400 transition">
+                                        {{ coin.symbol }}
+                                    </span>
+                                    <span class="text-[11px] text-zinc-400 font-medium font-mono-num">
+                                        /{% if coin.chain == 'bsc' %}BNB{% else %}SOL{% endif %}
+                                    </span>
+                                    <span class="text-[11px] text-zinc-400 truncate max-w-[130px]">
+                                        {{ coin.name }}
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Market Cap -->
+                        <td class="px-3 text-right">
+                            <span class="font-bold text-cyan-400">{{ coin.mcap_formatted }}</span>
+                        </td>
+
+                        <!-- Price -->
+                        <td class="px-3 text-right font-medium text-zinc-200">
+                            {{ coin.price_formatted }}
+                        </td>
+
+                        <!-- Age -->
+                        <td class="px-3 text-center text-zinc-400 font-medium text-[11px]">
+                            {{ coin.age_formatted }}
+                        </td>
+
+                        <!-- TXNS -->
+                        <td class="px-3 text-right text-zinc-300">
+                            {{ coin.txns_formatted }}
+                        </td>
+
+                        <!-- Volume -->
+                        <td class="px-3 text-right font-medium text-zinc-200">
+                            {{ coin.vol_formatted }}
+                        </td>
+
+                        <!-- Traders -->
+                        <td class="px-3 text-right text-zinc-400">
+                            {{ coin.traders_formatted }}
+                        </td>
+
+                        <!-- 5M % -->
+                        <td class="px-3 text-right font-semibold {% if coin.change_5m >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                            {% if coin.change_5m >= 0 %}+{{ coin.change_5m }}%{% else %}{{ coin.change_5m }}%{% endif %}
+                        </td>
+
+                        <!-- 1H % -->
+                        <td class="px-3 text-right font-semibold {% if coin.change_1h >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                            {% if coin.change_1h >= 0 %}+{{ coin.change_1h }}%{% else %}{{ coin.change_1h }}%{% endif %}
+                        </td>
+
+                        <!-- 6H % -->
+                        <td class="px-3 text-right font-semibold {% if coin.change_6h >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                            {% if coin.change_6h >= 0 %}+{{ coin.change_6h }}%{% else %}{{ coin.change_6h }}%{% endif %}
+                        </td>
+
+                        <!-- 24H % -->
+                        <td class="px-3 text-right font-semibold {% if coin.change_24h >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                            {% if coin.change_24h >= 0 %}+{{ coin.change_24h }}%{% else %}{{ coin.change_24h }}%{% endif %}
+                        </td>
+
+                        <!-- AI Score -->
+                        <td class="px-3 text-center font-bold">
+                            <span class="px-1.5 py-0.5 rounded text-[11px] {% if coin.score >= 7.5 %}bg-emerald-950/50 text-emerald-400 border border-emerald-800/60{% elif coin.score >= 6 %}bg-amber-950/50 text-amber-400 border border-amber-800/60{% else %}bg-rose-950/50 text-rose-400 border border-rose-800/60{% endif %}">
+                                {{ coin.score|floatformat:1 }}
+                            </span>
+                        </td>
+
+                        <!-- Pass/Not Pass Status Indicator -->
+                        <td class="px-3 text-center">
+                            {% if coin.is_passed %}
+                                <span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/80">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                    <span>PASS</span>
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-950/60 text-rose-400 border border-rose-800/80">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                    <span>FAIL</span>
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Liquidity -->
+                        <td class="px-3 pr-4 text-right font-bold text-zinc-200">
+                            {{ coin.liq_formatted }}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="14" class="py-16 text-center text-zinc-500 font-sans">
+                            No tokens found matching the active filters.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

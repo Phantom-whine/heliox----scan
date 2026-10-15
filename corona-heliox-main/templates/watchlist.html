@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Watchlist — HELIOX{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full bg-black text-zinc-100 font-mono-num text-xs">
+
+    <!-- Header Bar -->
+    <div class="h-12 border-b border-zinc-800 bg-zinc-950 px-4 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-star text-amber-400 text-xs"></i>
+            <span class="font-bold text-white text-sm font-sans">Starred Watchlist</span>
+            <span class="text-[11px] text-zinc-400">({{ watchlist_items|length }} tracked)</span>
+        </div>
+        <a href="{% url 'dashboard' %}" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 text-xs px-2.5 py-1 rounded transition">
+            Explore All Pairs
+        </a>
+    </div>
+
+    <!-- Watchlist Table -->
+    <div class="flex-1 overflow-x-auto">
+        <table class="w-full text-left border-collapse whitespace-nowrap">
+            <thead>
+                <tr class="h-8 border-b border-zinc-800 bg-zinc-950 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase select-none">
+                    <th class="pl-4 pr-2 w-8 text-center">★</th>
+                    <th class="px-3">TOKEN</th>
+                    <th class="px-3">CHAIN</th>
+                    <th class="px-3 text-right">MCAP</th>
+                    <th class="px-3 text-right">PRICE</th>
+                    <th class="px-3 text-center">AI SCORE</th>
+                    <th class="px-3 text-right">LIQUIDITY</th>
+                    <th class="px-3 pr-4 text-right">ACTIONS</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-900 text-xs">
+                {% for item in watchlist_items %}
+                    <tr class="h-12 hover:bg-zinc-900 transition group cursor-pointer" id="row-{{ item.token_ca }}" onclick="window.location='{% url 'token_detail' item.token_ca %}';">
+                        <td class="pl-4 pr-2 text-center" onclick="event.stopPropagation();">
+                            <button onclick="toggleWatchlist('{{ item.token_ca }}', this); document.getElementById('row-{{ item.token_ca }}').remove();" class="text-amber-400 hover:text-rose-400 transition">
+                                <i class="fa-solid fa-star text-xs"></i>
+                            </button>
+                        </td>
+                        <td class="px-3">
+                            <span class="font-bold text-white text-sm group-hover:text-blue-400 font-sans">${{ item.token_symbol }}</span>
+                            <span class="text-[11px] text-zinc-400 ml-1">{{ item.token_name }}</span>
+                        </td>
+                        <td class="px-3 uppercase text-zinc-400">
+                            {{ item.chain }}
+                        </td>
+                        <td class="px-3 text-right font-bold text-cyan-400">
+                            {% if item.token %}{{ item.token.mcap_formatted }}{% else %}N/A{% endif %}
+                        </td>
+                        <td class="px-3 text-right text-zinc-200">
+                            {% if item.token %}{{ item.token.price_formatted }}{% else %}-{% endif %}
+                        </td>
+                        <td class="px-3 text-center">
+                            {% if item.token %}
+                                <span class="font-bold {% if item.token.score >= 7.5 %}text-emerald-400{% elif item.token.score >= 6 %}text-amber-400{% else %}text-rose-400{% endif %}">
+                                    {{ item.token.score|floatformat:1 }}
+                                </span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="px-3 text-right font-bold text-zinc-200">
+                            {% if item.token %}{{ item.token.liq_formatted }}{% else %}-{% endif %}
+                        </td>
+                        <td class="px-3 pr-4 text-right" onclick="event.stopPropagation();">
+                            <a href="{% url 'token_detail' item.token_ca %}" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 text-xs px-2.5 py-1 rounded transition inline-block">
+                                Dossier
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="8" class="py-16 text-center text-zinc-500 font-sans">
+                            No tokens starred yet. Browse the screener and click the star icon on any token.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
